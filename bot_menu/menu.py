@@ -3,12 +3,16 @@ from aiogram import types
 async def main_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-        text='Парсить открытый чат',
-        callback_data='parsing_open_start'
+            text='🔍Спарсить открытый чат', 
+            callback_data='parsing_open_start'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-        text='Premium функции',
-        callback_data='premium_menu'
+            text='🔒Premium функции', 
+            callback_data='premium_menu'
+    ))
+    inline_markup.add(types.InlineKeyboardButton(
+            text='👑Купить премиум статус', 
+            callback_data='buy_premium'
     ))
     return inline_markup
 
