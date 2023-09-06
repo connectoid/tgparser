@@ -82,6 +82,7 @@ async def start_message(message: types.Message):
 ''' Кнопка назад '''
 
 @dp.callback_query_handler(state=ChatOpenLink.waiting_link)
+@dp.callback_query_handler(state=ParsingActive.waiting_link)
 @dp.callback_query_handler(lambda call: 'back_to_main_menu' in call.data)
 async def get_open_report(callback_query: types.CallbackQuery, state: FSMContext):
     text = f'Привет *{callback_query.from_user.first_name}*!\nВаш ID: {callback_query.from_user.id}\nЯ могу спарсить любой чат\nВыбери необходимое действие👇'
@@ -123,7 +124,8 @@ async def parsing_open_start(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda call: 'parsing_activity' in call.data)
 async def parsing_activity_start(callback_query: types.CallbackQuery):
     text = 'Отправьте ссылку на чат'
-    await bot.send_message(callback_query.from_user.id, text, parse_mode='Markdown')
+    inline_markup = await menu.back_menu()
+    await callback_query.message.edit_text(text, reply_markup=inline_markup, parse_mode='Markdown')
     await ParsingActive.waiting_link.set()
 
 '''Запрос фильтра по активности'''
