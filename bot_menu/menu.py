@@ -32,6 +32,14 @@ async def premium_parsing_menu():
     ))
     return inline_markup
 
+async def back_menu():
+    inline_markup = types.InlineKeyboardMarkup()
+    inline_markup.add(types.InlineKeyboardButton(
+        text='🔙Назад', 
+        callback_data='back_to_main_menu'
+    ))
+    return inline_markup
+
 async def last_active_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(

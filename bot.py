@@ -75,9 +75,19 @@ async def start_message(message: types.Message):
                 elif message.from_user.username != None:
                     await bot.send_message(user.tg_id, text=f'Пользователь <a href="tg://user?id={message.from_user.id}">@{username}</a> присоединился', parse_mode='HTML')
                 else:
-                   await bot.send_message(user.tg_id, text=f'Пользователь <a href="tg://user?id={message.from_user.id}">@{username}</a> присоединился', parse_mode='HTML') 
+                    await bot.send_message(user.tg_id, text=f'Пользователь <a href="tg://user?id={message.from_user.id}">@{username}</a> присоединился', parse_mode='HTML') 
     await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
     await set_default_commands(dp)
+
+''' Кнопка назад '''
+
+@dp.callback_query_handler(state=ChatOpenLink.waiting_link)
+@dp.callback_query_handler(lambda call: 'back_to_main_menu' in call.data)
+async def get_open_report(callback_query: types.CallbackQuery, state: FSMContext):
+    text = f'Привет *{callback_query.from_user.first_name}*!\nВаш ID: {callback_query.from_user.id}\nЯ могу спарсить любой чат\nВыбери необходимое действие👇'
+    inline_markup = await menu.main_menu()
+    await callback_query.message.edit_text(text, reply_markup=inline_markup, parse_mode='Markdown')
+    await state.finish()
 
 '''Вызов главного меню'''
 
@@ -104,7 +114,8 @@ async def get_premium_menu(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda call: 'parsing_open_start' in call.data)
 async def parsing_open_start(callback_query: types.CallbackQuery):
     text = 'Отправьте ссылку на ваш чат в формате *t.mе/durоv* или *@durоv*'
-    await bot.send_message(callback_query.from_user.id, text, parse_mode='Markdown')
+    inline_markup = await menu.back_menu()
+    await callback_query.message.edit_text(text, reply_markup=inline_markup, parse_mode='Markdown')
     await ChatOpenLink.waiting_link.set()
 
 '''Кнопка по дате последнего посещения'''
@@ -280,6 +291,7 @@ async def get_stat(callback_query: types.CallbackQuery):
     text = f'Всего пользователей: {stat[0]}\nУдалили чат с ботом: {stat[1]}\n*Количество удаливших чат с ботом обновляется после рассылки*'
     await bot.send_message(callback_query.from_user.id, text, parse_mode='Markdown')
 
+''' Покупка премиума '''
 
 @dp.callback_query_handler(lambda call: 'buy_premium' in call.data)
 async def button_buy(callback_query: types.CallbackQuery):

@@ -60,7 +60,6 @@ async def activity_request(link, id, online):
         users_list.extend(users)
         OFFSET_USER += len(users)
     for user in users_list:
-        print(f'#### STATUS ####: {user.status} - {user.status.__class__} - {user.username}, {user.phone}')
         if user.status.__class__ == telethon.tl.types.UserStatusRecently:
             continue
         elif user.status.__class__ == telethon.tl.types.UserStatusOnline:
