@@ -8,12 +8,16 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
+from telethon.sync import TelegramClient
+from telethon.errors.rpcerrorlist import UsernameInvalidError, ChatAdminRequiredError
+from telethon.types import Channel
 
 from settings import bot_settings
 from bot_menu import menu
 from database import orm
 from request_report import request, create_report
 
+USER_PARSE_DELAY = 1
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,6 +30,8 @@ logging.basicConfig(
 bot = Bot(token=bot_settings.BOT_TOKEN)
 storage = MemoryStorage() 
 dp = Dispatcher(bot, storage=storage)
+#client = TelegramClient(bot_settings.SESSION_NAME, bot_settings.API_ID, bot_settings.API_HASH)
+#client.start()
 
 '''Состояния'''
 
@@ -54,9 +60,25 @@ class Get_id_admin(StatesGroup):
 async def set_default_commands(dp):
     await dp.bot.set_my_commands(
         [
-            types.BotCommand('start', 'Перезапустить бота'),
+            types.BotCommand('start', 'Главное меню'),
         ]
     )
+
+'''Валидация ссылок'''
+
+async def check_link(link):
+    try:
+        channel = await request.client.get_entity(link)
+        print('@@@@@@@@@@@@@@@@@@')
+        if isinstance(channel, Channel):
+            print('TTTTTTTTTTTTTT')
+            return True
+        else:
+            print('FFFFFFFFFFF')
+            return False
+    except (UsernameInvalidError, ValueError, ChatAdminRequiredError):
+        print('##################')
+        return False
 
 '''Главное меню'''
 
@@ -83,6 +105,7 @@ async def start_message(message: types.Message):
 
 @dp.callback_query_handler(state=ChatOpenLink.waiting_link)
 @dp.callback_query_handler(state=ParsingActive.waiting_link)
+@dp.callback_query_handler(state=ParsingPhones.waiting_link)
 @dp.callback_query_handler(lambda call: 'back_to_main_menu' in call.data)
 async def get_open_report(callback_query: types.CallbackQuery, state: FSMContext):
     text = f'Привет *{callback_query.from_user.first_name}*!\nВаш ID: {callback_query.from_user.id}\nЯ могу спарсить любой чат\nВыбери необходимое действие👇'
@@ -123,7 +146,7 @@ async def parsing_open_start(callback_query: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda call: 'parsing_activity' in call.data)
 async def parsing_activity_start(callback_query: types.CallbackQuery):
-    text = 'Отправьте ссылку на чат'
+    text = 'Отправьте ссылку на чат в формате *t.mе/durоv* или *@durоv*'
     inline_markup = await menu.back_menu()
     await callback_query.message.edit_text(text, reply_markup=inline_markup, parse_mode='Markdown')
     await ParsingActive.waiting_link.set()
@@ -142,8 +165,9 @@ async def get_filter_activity(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda call: 'phones' in call.data)
 async def parsing_phones(callback_query: types.CallbackQuery):
-    text = 'Отправьте ссылку на чат'
-    await bot.send_message(callback_query.from_user.id, text, parse_mode='Markdown')
+    text = 'Отправьте ссылку на чат в формате *t.mе/durоv* или *@durоv*'
+    inline_markup = await menu.back_menu()
+    await callback_query.message.edit_text(text, reply_markup=inline_markup, parse_mode='Markdown')
     await ParsingPhones.waiting_link.set()
 
 '''Прасинг открытого чата'''
@@ -153,15 +177,20 @@ async def get_open_report(message: types.Message, state: FSMContext):
     await state.update_data(waiting_link=message.text)
     state_data = await state.get_data()
     link = state_data.get('waiting_link')
-    ALL_PARTICIPANTS = await request.open_chat_request(link, message.chat.id)
-    await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'users')
-    await state.finish()
-    text = 'Для парсинга следующего чата выберите необходимое действие👇'
-    inline_markup = await menu.main_menu()
-    target = '*.txt'
-    file = glob.glob(target)[0]
-    await message.reply_document(open(file, 'rb'))
-    await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
+    if await check_link(link):
+        ALL_PARTICIPANTS = await request.open_chat_request(link, message.chat.id)
+        await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'users')
+        await state.finish()
+        text = 'Для парсинга следующего чата выберите необходимое действие👇'
+        inline_markup = await menu.main_menu()
+        target = '*.txt'
+        file = glob.glob(target)[0]
+        await message.reply_document(open(file, 'rb'))
+        await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
+    else:
+        text = 'Такого чата не существует (возможно отправлена ссылка на канал или пользователя). Отправьте ссылку на существующий чат в формате *t.mе/durоv* или *@durоv*'
+        inline_markup = await menu.back_menu()
+        await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
 
 '''Парсинг по последней активности'''
 
@@ -172,14 +201,19 @@ async def parsing_activity_start(callback_query: types.CallbackQuery, state: FSM
     link = state_data.get('waiting_link')
     online = state_data.get('last_activity').split('_')[1]
     ALL_PARTICIPANTS = await request.activity_request(link, callback_query.from_user.id, online)
-    await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'users') 
-    await state.finish()
-    target = '*.txt'
-    file = glob.glob(target)[0]
-    text = 'Для парсинга следующего чата выберите необходимое действие👇'
-    inline_markup = await menu.main_menu()
-    await bot.send_document(callback_query.from_user.id, open(file, 'rb'))
-    await bot.send_message(callback_query.from_user.id, text, reply_markup=inline_markup)
+    if ALL_PARTICIPANTS:
+        await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'users') 
+        await state.finish()
+        target = '*.txt'
+        file = glob.glob(target)[0]
+        text = 'Для парсинга следующего чата выберите необходимое действие👇'
+        inline_markup = await menu.main_menu()
+        await bot.send_document(callback_query.from_user.id, open(file, 'rb'))
+        await bot.send_message(callback_query.from_user.id, text, reply_markup=inline_markup)
+    else:
+        text = 'Такого чата не существует (возможно отправлена ссылка на канал или пользователя). Отправьте ссылку на существующий чат в формате *t.mе/durоv* или *@durоv*'
+        inline_markup = await menu.back_menu()
+        await bot.send_message(callback_query.from_user.id, text, reply_markup=inline_markup)
     
 '''Прасинг телефонов'''
 
@@ -189,16 +223,22 @@ async def get_phone_numbers(message: types.Message, state: FSMContext):
     state_data = await state.get_data()
     link = state_data.get('waiting_link')
     ALL_PARTICIPANTS = await request.open_chat_request(link, message.chat.id)
-    await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'phones')
-    target = '*.txt'
-    file = glob.glob(target)[0] 
-    await state.finish()
-    text = 'Для парсинга следующего чата выберите необходимое действие👇'
-    inline_markup = await menu.main_menu()
-    if os.stat(file).st_size == 0:
-        await message.answer('Пользователей с нескрытым телефоном не найдено', reply_markup=inline_markup, parse_mode='Markdown')
+    if ALL_PARTICIPANTS:
+        await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'phones')
+        target = '*.txt'
+        file = glob.glob(target)[0] 
+        await state.finish()
+        text = 'Для парсинга следующего чата выберите необходимое действие👇'
+        inline_markup = await menu.main_menu()
+        if os.stat(file).st_size == 0:
+            await message.answer('Пользователей с нескрытым телефоном не найдено', reply_markup=inline_markup, parse_mode='Markdown')
+        else:
+            await message.reply_document(open(file, 'rb'))
+            await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
     else:
-        await message.reply_document(open(file, 'rb'))
+        text = 'Такого чата не существует (возможно отправлена ссылка на канал или пользователя). Отправьте ссылку на существующий чат в формате *t.mе/durоv* или *@durоv*'
+        inline_markup = await menu.back_menu()
+        await message.answer(text, reply_markup=inline_markup, parse_mode='Markdown')
 
 '''Вызов меню администратора'''                                   
 
@@ -233,7 +273,7 @@ async def mailing(message: types.Message, state: FSMContext):
             await bot.send_message(user.tg_id, text=text, entities=entity, disable_web_page_preview=True)
             count += 1
             if count == 15:
-                asyncio.sleep(5)
+                asyncio.sleep(USER_PARSE_DELAY)
                 count = 0
         except:
             count_of_banned += 1
