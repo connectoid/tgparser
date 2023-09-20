@@ -91,8 +91,8 @@ async def activity_request(link, id, online):
 async def private_chat_request(link, id):
     await check_join(link)
     chat = await app.get_chat(link)
-    await bot.send_message(id, text=STARTING_PARSING_MESSAGE)
-    upload_message = await bot.send_message(id, text=PARSING_PROGRESS_MESSAGE)
+    await bot.send_message(id, text='Начинаю парсинг, это может занять от 10 до 15 минут⏱')
+    upload_message = await bot.send_message(id, text='Идёт парсинг: 0% [..........]')
     ALL_PARTICIPANTS = []
     count = await app.get_chat_members_count(chat.id)
     percent = 10
@@ -100,10 +100,12 @@ async def private_chat_request(link, id):
         ALL_PARTICIPANTS.append(participant.user)
         progress = len(ALL_PARTICIPANTS) * 100 // count
         if progress == percent:
-            await upload_message.edit_text(text=f'{PARSING_MESSAGE}{progress}% [{"*"*(int(progress)//10)}{"."*(10-int(progress)//10)}]')
+            await upload_message.edit_text(text=f'Идёт парсинг: {progress}% [{"*"*(int(progress)//10)}{"."*(10-int(progress)//10)}]')
             percent += 10
-    await upload_message.edit_text(text='Идёт парсинг: 1000% [**********]')
+    # await upload_message.edit_text(text='Идёт парсинг: 100% [**********]')
     return ALL_PARTICIPANTS
+
+'''Парсинг по сообщениям'''
 
 async def chat_messages_request(link, id, current_time, count):
     await check_join(link)
