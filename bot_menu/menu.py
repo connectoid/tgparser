@@ -1,17 +1,19 @@
 from aiogram import types
 
+from lexicon.lexicon_ru import *
+
 async def main_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-            text='🔍Спарсить открытый чат', 
+            text=PARSE_OPEN_CHAT_BUTTON, 
             callback_data='parsing_open_start'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-            text='🔒Premium функции', 
+            text=PREMIUM_FUNCTIONS_BUTTON, 
             callback_data='premium_menu'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-            text='👑Купить премиум статус', 
+            text=BUY_PREMIUM_BUTTON, 
             callback_data='buy_premium'
     ))
     return inline_markup
@@ -19,23 +21,49 @@ async def main_menu():
 async def premium_parsing_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-            text='📆По дате последнего посещения', 
+            text=BY_ACTIVITY_BUTTON, 
             callback_data='parsing_activity'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-        text='📱Моб. телефоны', 
+        text=PHONES_BUTTON, 
         callback_data='phones'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-        text='🔙Назад', 
+        text=PRIVATE_BUTTON, 
+        callback_data='parsing_private'
+    ))
+    inline_markup.add(types.InlineKeyboardButton(
+        text=WRITING_USERS_BUTTON, 
+        callback_data='parsing_messages'
+    ))
+    inline_markup.add(types.InlineKeyboardButton(
+        text=TO_MAIN_MENU_BUTTON, 
         callback_data='main_menu'
     ))
     return inline_markup
 
+
+async def messages_count_menu():
+    inline_markup = types.InlineKeyboardMarkup()
+    inline_markup.add(types.InlineKeyboardButton(
+            text=LAST_100_BUTTON, 
+            callback_data='messages_100'
+    ))
+    inline_markup.add(types.InlineKeyboardButton(
+            text=LAST_500_BUTTON, 
+            callback_data='messages_500'
+    ))
+    inline_markup.add(types.InlineKeyboardButton(
+            text=LAST_1000_BUTTON, 
+            callback_data='messages_1000'
+    ))
+    return inline_markup
+
+
 async def back_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-        text='🔙Назад', 
+        text=TO_MAIN_MENU_BUTTON, 
         callback_data='back_to_main_menu'
     ))
     return inline_markup
@@ -43,11 +71,11 @@ async def back_menu():
 async def last_active_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-            text='Был(а) недавно', 
+            text=WAS_RECENTLY_BUTTON, 
             callback_data='online_recently'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-            text='Был(а) на этой неделе', 
+            text=WAS_ONWEEK_BUTTON, 
             callback_data='online_week'
     ))
     return inline_markup
@@ -55,19 +83,19 @@ async def last_active_menu():
 async def admin_menu():
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(
-            text='Создать рассылку', 
+            text=MAKE_BROADCAST_BUTTON, 
             callback_data='create_mailing'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-            text='Статистика', 
+            text=STAT_BUTTON, 
             callback_data='stat'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-            text='Дать права админа', 
+            text=GRANT_ADMIN_BUTTON, 
             callback_data='set_admin_previlegies'
     ))
     inline_markup.add(types.InlineKeyboardButton(
-        text='Дать премиум статус', 
+        text=GRANT_PREMIUM_BUTTON, 
         callback_data='set_premium'
     ))
     return inline_markup
