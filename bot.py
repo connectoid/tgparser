@@ -91,6 +91,13 @@ async def check_private_link(link):
 
 '''Валидация ссылок'''
 
+async def trim_link(link: str):
+    print(link)
+    if link.startswith('https://t.me/'):
+        link = link.replace('https://t.me/', '@')
+    print(link)
+    return link
+
 async def check_link(link):
     try:
         channel = await request.client.get_entity(link)
@@ -324,7 +331,8 @@ async def get_phone_numbers(message: types.Message, state: FSMContext):
 async def get_private_report(message: types.Message, state: FSMContext):
     await state.update_data(waiting_link=message.text)
     state_data = await state.get_data()
-    link = state_data.get('waiting_link')
+    link = trim_link(state_data.get('waiting_link'))
+    print('@@@@@@@@@', link)
     if await check_private_link(link):
         ALL_PARTICIPANTS = await request.private_chat_request(link, message.chat.id)
         await create_report.create_open_chat_report(ALL_PARTICIPANTS, 'pyrogram')
@@ -347,6 +355,7 @@ async def parsing_activity_start(callback_query: types.CallbackQuery, state: FSM
     await state.update_data(count=callback_query.data)
     state_data = await state.get_data()
     link = state_data.get('waiting_link')
+    link = await trim_link(link)
     count = state_data.get('count').split('_')[1]
     current_time = datetime.now(timezone.utc)
     ALL_PARTICIPANTS = await request.chat_messages_request(link, callback_query.from_user.id, current_time, int(count))
