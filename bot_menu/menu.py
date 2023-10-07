@@ -57,6 +57,10 @@ async def messages_count_menu():
             text=LAST_1000_BUTTON, 
             callback_data='messages_1000'
     ))
+    inline_markup.add(types.InlineKeyboardButton(
+            text=ALL_MESSAGES_BUTTON, 
+            callback_data='messages_0'
+    ))
     return inline_markup
 
 

@@ -110,7 +110,13 @@ async def private_chat_request(link, id):
 async def chat_messages_request(link, id, current_time, count):
     await check_join(link)
     chat = await app.get_chat(link)
-    await bot.send_message(id, text='Начинаю парсинг, это может занять от 10 до 15 минут⏱')
+    members_count = chat.members_count
+    description = chat.description
+    # member.count # description
+    if count == 0:
+        count = await app.get_chat_history_count(link)
+    await bot.send_message(id, text=f'Найден чат {link} - "{description}", количество участников: {members_count}')
+    await bot.send_message(id, text=f'Начинаю парсинг пользователей по {count} сообщений')
     upload_message = await bot.send_message(id, text='Идёт парсинг:')
     ALL_PARTICIPANTS = []
     current_message = 1
